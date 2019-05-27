@@ -1,73 +1,83 @@
+/**
+ * A demo program for itertools.
+ * 
+ * @author Erel Segal-Halevi
+ * @since  2019-05
+ */
+
 #pragma once
 #import "range.hpp"
 #include "zip.hpp"
 
 namespace itertools{
+	
 
-	template<typename T1, typename T2>
+	template<typename A, typename B>
 	class product{
 
 	private:
-		T1 first;
-		T2 second;
+
+		// fields
+		A aIterable;
+		B bIterable;
 
 	public:
 
-		product<T1,T2>(const T1 iter1, const T2 iter2): first(iter1),second(iter2) {}
+		product<A,B>(const A _aIterable, const B _bIterable)
+			: aIterable(_aIterable),
+			bIterable(_bIterable) {}
 
 		class const_iterator {
-			
-			//class members
+
 			private:
-				typename T1::const_iterator it1Begin;
-				typename T1::const_iterator it1End;
-				typename T2::const_iterator it2Begin;
-				typename T2::const_iterator it2End;
-				typename T2::const_iterator it2start; //const begin of second iterator. 
-				
-				
+				typename A::const_iterator tCurrent;
+				typename A::const_iterator tEnd;
+				typename B::const_iterator sStart;
+				typename B::const_iterator sCurrent;
+				typename B::const_iterator sEnd;
+
+				bool isDone() const {
+					return (sCurrent == sEnd || tCurrent == tEnd);
+				}
 
 			public:
-				const_iterator(typename T1::const_iterator iter1Begin, typename T1::const_iterator iter1End, typename T2::const_iterator iter2Begin, typename T2::const_iterator iter2End)
-					:it1Begin(iter1Begin), it1End(iter1End),it2start(iter2Begin), it2Begin(iter2Begin), it2End(iter2End){ }
+				const_iterator(typename A::const_iterator tIt, typename A::const_iterator tItEnd, typename B::const_iterator sIt, typename B::const_iterator sItEnd):
+					tCurrent(tIt), tEnd(tItEnd),
+					sStart(sIt), sCurrent(sIt), sEnd(sItEnd)
+				 { }
 
 				const auto operator*() const {
-					return pair(*it1Begin, *it2Begin);
+					return pair(*tCurrent, *sCurrent);
 				}
 
 				// ++i;
 				const_iterator& operator++() {
-					++it2Begin;
-					if (it2Begin != it2End) // if we not in the end of the second iterator
-						return *this;
-					else{
-						++it1Begin;
-						if (it1Begin == it1End) // both iterators rech to the end
-							return *this;
-						else // go back to the begining of second iterator
-							it2Begin = it2start;
-					}
+
+					++sCurrent;
+					if (sCurrent == sEnd){
+						++tCurrent;
+						if (tCurrent != tEnd)
+							sCurrent = sStart;
+					}	
 					return *this;
 				}
 
 				// i++;
+				// Usually const_iterators are passed by value and not by const& as they are small.
 				const const_iterator operator++(int) {
-					iterator It(*this);
-					operator++();
-					return It;
+					const_iterator tmp= *this;
+					this->product<A,B>::const_iterator::operator++();
+					return tmp;
 				}
 
-				bool operator==(const const_iterator& other) const {
-					if (it1Begin == other.it1Begin)
-						if(it2Begin == other.it2Begin)
-							return true;
-					return false;
+				bool operator==(const const_iterator& rhs) const {
+					if (this->isDone() && rhs.isDone())
+						return true;
+					return (this->tCurrent == rhs.tCurrent && this->sCurrent == rhs.sCurrent);
 				}
 
-				bool operator!=(const const_iterator& other) const {
-					if(*this==other)
-						return false;
-					return true;
+				bool operator!=(const const_iterator& rhs) const {
+					return !(*this==rhs);
 				}
 
 				template <typename I, typename J>
@@ -75,12 +85,12 @@ namespace itertools{
 
 		};  // END OF CLASS const_iterator
 		
-		typename product<T1,T2>::const_iterator begin() const {
-			return product<T1,T2>::const_iterator(first.begin(), first.end(), second.begin(), second.end());
+		typename product<A,B>::const_iterator begin() const {
+			return product<A,B>::const_iterator(aIterable.begin(), aIterable.end(), bIterable.begin(), bIterable.end());
 		}
 			
-		typename product<T1,T2>::const_iterator end() const {
-			return product<T1,T2>::const_iterator(first.end(), first.end(), second.end(), second.end());
+		typename product<A,B>::const_iterator end() const {
+			return product<A,B>::const_iterator(aIterable.end(), aIterable.end(), bIterable.end(), bIterable.end());
 		}
 
 	};   // END OF CLASS product
